@@ -33,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.flightsearch.models.Airport
 import com.example.flightsearch.ui.theme.AppViewModelProvider
 
 
@@ -139,27 +138,5 @@ fun MainScreen(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SuggestionItem(airport: Airport, viewModel: MainScreenViewModel) {
-    Card(onClick = { /*TODO*/ }) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            Text(
-                text = airport.iataCode,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = airport.name,
-            )
-        }
-    }
-
 }
 
