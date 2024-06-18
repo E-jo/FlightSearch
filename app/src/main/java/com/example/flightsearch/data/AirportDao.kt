@@ -25,6 +25,13 @@ interface AirportDao {
     """)
     fun getSuggestedAirports(searchString: String): Flow<List<Airport>>
 
+    @Query("""
+        SELECT * FROM airport 
+        WHERE iata_code NOT LIKE '%' || :searchString || '%' 
+        ORDER BY passengers DESC
+    """)
+    fun getDestinationAirports(searchString: String): Flow<List<Airport>>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(airport: Airport)
 

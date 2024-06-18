@@ -1,7 +1,6 @@
 package com.example.flightsearch.ui.theme.screens
 
 import android.util.Log
-import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,27 +27,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.flightsearch.data.SearchStringRepository
+import com.example.flightsearch.models.Airport
 import com.example.flightsearch.ui.theme.AppViewModelProvider
-import kotlinx.coroutines.coroutineScope
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: MainScreenViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val searchStringState by viewModel.searchString.collectAsState()
-    val uiState by viewModel.airportListUiState.collectAsState()
+    val airportList by viewModel.airportList.collectAsState()
 
     Column(modifier = Modifier
         .fillMaxSize()
@@ -87,58 +83,43 @@ fun MainScreen(
                     bottom = 8.dp
                 )
         )
-        /*
-        // First LazyColumn
-        LazyColumn(modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f)) {
-            items(uiState.airportList, key = { airport -> airport.id }) { airport ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        text = airport.iataCode,
-                        fontWeight = FontWeight.Bold,
 
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = airport.name,
-                    )
-                }
-
-            }
-        }
-
-         */
         Box(modifier = Modifier.fillMaxWidth()) {
             LazyColumn(modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 200.dp) // You can adjust this value as needed
+                .heightIn(max = 200.dp)
             ) {
-                items(uiState.airportList, key = { airport -> airport.id }) { airport ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
+                items(
+                    items = airportList,
+                    key = { airport -> airport.id },
+                ) { airport ->
+                    Card(
+                        onClick = {
+                            viewModel.getDestinations(airport.iataCode)
+                        }
                     ) {
-                        Text(
-                            text = airport.iataCode,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = airport.name,
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = airport.iataCode,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = airport.name,
+                            )
+                        }
                     }
+                    //SuggestionItem(airport, viewModel)
                 }
             }
         }
         Log.d("MainScreen", "Search string: $searchStringState")
-        Log.d("MainScreen", "Results: ${uiState.airportList.size}")
-        Log.d("MainScreen", "Airports: ${uiState.airportList.map { it.name }}")
+        Log.d("MainScreen", "Results: ${airportList.size}")
+        Log.d("MainScreen", "Airports: ${airportList.map { it.name }}")
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -158,5 +139,27 @@ fun MainScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SuggestionItem(airport: Airport, viewModel: MainScreenViewModel) {
+    Card(onClick = { /*TODO*/ }) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Text(
+                text = airport.iataCode,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = airport.name,
+            )
+        }
+    }
+
 }
 

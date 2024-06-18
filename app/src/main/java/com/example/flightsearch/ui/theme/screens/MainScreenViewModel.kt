@@ -14,10 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.time.debounce
 
 class MainScreenViewModel(
     private val airportRepository: AirportRepository,
@@ -47,6 +45,7 @@ class MainScreenViewModel(
 
  */
 
+/*
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     val airportListUiState: StateFlow<AirportListUiState> =
         searchString
@@ -62,6 +61,22 @@ class MainScreenViewModel(
                 initialValue = AirportListUiState()
             )
 
+
+ */
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    val airportList: StateFlow<List<Airport>> =
+        searchString
+            .debounce(300)
+            .flatMapLatest { query ->
+                airportRepository
+                    .getSuggestedAirports(query)
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000L),
+                initialValue = emptyList()
+            )
+
     fun updateSearchString(searchString: String) {
         viewModelScope.launch {
             searchStringRepository.saveSearchString(searchString)
@@ -73,12 +88,31 @@ class MainScreenViewModel(
             val results = airportRepository
                 .getSuggestedAirports(searchStringState)
                 .firstOrNull()
-                ?.size
-            Log.d("MainScreen", "Search results for $searchStringState: $results")
+            Log.d(
+                "MainScreen",
+                "Search results for $searchStringState: ${results?.size ?: 0}"
+            )
+            results?.forEach {Log.d("MainScreen", it.name)}
+        }
+    }
+    fun getDestinations(searchStringState: String) {
+        viewModelScope.launch {
+            val results = airportRepository
+                .getDestinationAirports(searchStringState)
+                .firstOrNull()
+            Log.d(
+                "MainScreen",
+                "Destination results for $searchStringState: ${results?.size ?: 0}"
+            )
+            results?.forEach {Log.d("MainScreen", it.name)}
         }
     }
 }
 
-data class FlightListUiState(val flightList: List<Flight> = listOf())
-data class AirportListUiState(val airportList: List<Airport> = listOf())
-data class SuggestionListUiState(val flightList: List<Flight> = listOf())
+data class UiState(
+    val airportList: List<Airport> = listOf(),
+    val resultList: List<Flight> = listOf(),
+    val favoriteList: List<Flight> = listOf(),
+    val currentAirport: Airport? = null,
+    val isShowingResults: Boolean = false
+)
