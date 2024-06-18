@@ -1,18 +1,23 @@
 package com.example.flightsearch.ui.theme.screens
 
 import android.util.Log
+import android.view.ViewGroup
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,16 +28,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flightsearch.data.SearchStringRepository
 import com.example.flightsearch.ui.theme.AppViewModelProvider
 import kotlinx.coroutines.coroutineScope
 
-/*viewModel.updateSearchString(it)*/
+
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
@@ -78,22 +87,55 @@ fun MainScreen(
                     bottom = 8.dp
                 )
         )
+        /*
         // First LazyColumn
         LazyColumn(modifier = Modifier
             .fillMaxWidth()
             .weight(1f)) {
             items(uiState.airportList, key = { airport -> airport.id }) { airport ->
-                Text(
-                    text = airport.name,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp)
-                        .background(Color.Gray.copy(alpha = 0.1f))
-                        .padding(16.dp)
-                )
+                ) {
+                    Text(
+                        text = airport.iataCode,
+                        fontWeight = FontWeight.Bold,
+
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = airport.name,
+                    )
+                }
+
             }
         }
 
+         */
+        Box(modifier = Modifier.fillMaxWidth()) {
+            LazyColumn(modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 200.dp) // You can adjust this value as needed
+            ) {
+                items(uiState.airportList, key = { airport -> airport.id }) { airport ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = airport.iataCode,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = airport.name,
+                        )
+                    }
+                }
+            }
+        }
         Log.d("MainScreen", "Search string: $searchStringState")
         Log.d("MainScreen", "Results: ${uiState.airportList.size}")
         Log.d("MainScreen", "Airports: ${uiState.airportList.map { it.name }}")
@@ -117,3 +159,4 @@ fun MainScreen(
         }
     }
 }
+
