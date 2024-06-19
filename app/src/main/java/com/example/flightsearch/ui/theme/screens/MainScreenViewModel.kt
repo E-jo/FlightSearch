@@ -30,12 +30,7 @@ class MainScreenViewModel(
         clearFavorites()
     }
 
-    private val _uiState = MutableStateFlow(
-        UiState(
-            currentAirport = null,
-            isShowingResults = false
-        )
-    )
+    private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState
 
     private val _searchString = MutableStateFlow("")
@@ -55,7 +50,27 @@ class MainScreenViewModel(
                 initialValue = emptyList()
             )
 
-    fun clearFavorites() {
+    private val _airportNames = MutableStateFlow<Map<String, String>>(emptyMap())
+    val airportNames: StateFlow<Map<String, String>> = _airportNames
+
+    fun loadAirportName(iataCode: String) {
+        viewModelScope.launch {
+            val name = airportRepository.getAirportNameByIataCode(iataCode).firstOrNull() ?: "Unknown"
+            _airportNames.value = _airportNames.value + (iataCode to name)
+        }
+    }
+
+    private val _favorites = MutableStateFlow<List<Favorite>>(emptyList())
+    val favorites: StateFlow<List<Favorite>> = _favorites
+
+    fun loadFavorites() {
+        viewModelScope.launch {
+            val favorites = favoriteRepository.getAllFavorites().firstOrNull() ?: emptyList()
+            _favorites.value = favorites
+        }
+    }
+
+    private fun clearFavorites() {
         viewModelScope.launch {
             favoriteRepository.clearFavorites()
             favoriteRepository.resetFavoriteSequence()
@@ -76,13 +91,17 @@ class MainScreenViewModel(
 
     fun showResults() {
         _uiState.update {
-            it.copy(isShowingResults = true)
+            it.copy(screenState = ScreenState.RESULTS)
         }
     }
 
-    fun hideResults() {
+    fun hideResults(searchString: String) {
         _uiState.update {
-            it.copy(isShowingResults = false)
+            if (searchString.isEmpty()) {
+                it.copy(screenState = ScreenState.FAVORITES)
+            } else {
+                it.copy(screenState = ScreenState.SUGGESTIONS)
+            }
         }
     }
 
@@ -115,7 +134,6 @@ class MainScreenViewModel(
                 if (_uiState.value.currentAirport != null) {
                     currentAirportCode = _uiState.value.currentAirport!!.iataCode
                 }
-                val maxId = favoriteRepository.getMaxId() ?: 0
                 val flight = Favorite(
                     departureCode = currentAirportCode,
                     destinationCode = it.iataCode
@@ -144,16 +162,17 @@ class MainScreenViewModel(
             _uiState.update {
                 it.copy(
                     flightList = flights,
-                    isShowingResults = true
+                    screenState = ScreenState.RESULTS
                 )
             }
         }
     }
 
-    fun toggleFavorite(flight: Favorite) {
+    fun toggleFavorite(flight: Favorite, favorites: List<Favorite>) {
         Log.d("ViewModel", "Toggling favorite for ${flight.id}")
+        loadFavorites()
         viewModelScope.launch {
-            if (isFavorite(flight)) {
+            if (favorites.contains(flight)) {
                 Log.d("ViewModel", "${flight.id} is currently a favorite, removing it")
                 favoriteRepository.delete(flight)
             } else {
@@ -191,7 +210,6 @@ class MainScreenViewModel(
 
 data class UiState(
     val currentAirport: Airport? = null,
-    val isShowingResults: Boolean = false,
     val flightList: List<Favorite> = emptyList(),
     val screenState: ScreenState = ScreenState.SUGGESTIONS
 )
