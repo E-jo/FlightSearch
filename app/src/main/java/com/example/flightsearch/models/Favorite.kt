@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "favorite")
-data class Flight(
+data class Favorite(
     @PrimaryKey(autoGenerate = true)
     val id: Int,
     @ColumnInfo(name = "departure_code")
@@ -13,7 +13,3 @@ data class Flight(
     @ColumnInfo(name = "destination_code")
     val destinationCode: String
 )
-    /*
-    @ColumnInfo(name = "is_favorite")
-    val isFavorite: Boolean
-*/

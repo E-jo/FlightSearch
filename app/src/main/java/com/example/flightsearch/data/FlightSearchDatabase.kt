@@ -5,15 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.flightsearch.models.Airport
-import com.example.flightsearch.models.Flight
+import com.example.flightsearch.models.Favorite
 
 @Database(
-    entities = [Airport::class, Flight::class],
+    entities = [Airport::class, Favorite::class],
     version = 1, exportSchema = false
 )
 abstract class FlightSearchDatabase : RoomDatabase() {
     abstract fun airportDao(): AirportDao
-    abstract fun flightDao(): FlightDao
+    abstract fun favoriteDao(): FavoriteDao
 
     companion object {
         @Volatile
@@ -27,7 +27,7 @@ abstract class FlightSearchDatabase : RoomDatabase() {
                     "flight_search"
                 )
                     .createFromAsset("database/flight_search.db")
-                    .fallbackToDestructiveMigrationOnDowngrade()
+                    .fallbackToDestructiveMigration()
                     .build()
                     .also { Instance = it }
             }

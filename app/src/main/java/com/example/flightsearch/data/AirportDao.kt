@@ -14,6 +14,9 @@ interface AirportDao {
     @Query("SELECT * FROM airport WHERE id = :id")
     fun getAirportById(id: Int): Flow<Airport?>
 
+    @Query("SELECT * FROM airport WHERE iata_code = :iataCode")
+    fun getAirportByIata(iataCode: String): Flow<Airport?>
+
     @Query("SELECT * FROM airport ORDER BY passengers DESC")
     fun getAllAirports(): Flow<List<Airport>>
 
