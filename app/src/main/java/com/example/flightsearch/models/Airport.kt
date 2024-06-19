@@ -12,37 +12,4 @@ data class Airport(
     val iataCode: String,
     val name: String,
     val passengers: Int
-) {
-}
-
-/*
-Column
-
-Data type
-
-Description
-
-id
-
-INTEGER
-
-Unique identifier (primary key)
-
-iata_code
-
-VARCHAR
-
-3 letter IATA code
-
-name
-
-VARCHAR
-
-Full airport name
-
-passengers
-
-INTEGER
-
-Number of passengers per year
- */
+)

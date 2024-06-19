@@ -35,6 +35,12 @@ interface AirportDao {
     """)
     fun getDestinationAirports(searchString: String): Flow<List<Airport>>
 
+    @Query("""
+        SELECT name FROM airport
+        WHERE iata_code LIKE :iataCode
+    """)
+    fun getAirportNameByIataCode(iataCode: String): Flow<String>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(airport: Airport)
 

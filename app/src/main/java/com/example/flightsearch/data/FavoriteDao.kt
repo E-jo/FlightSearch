@@ -12,10 +12,27 @@ interface FavoriteDao {
     @Query("SELECT * FROM favorite")
     fun getAllFavorites(): Flow<List<Favorite>>
     @Query("SELECT * FROM favorite WHERE id = :id")
-
     fun getFavoriteById(id: Int): Flow<Favorite?>
+
+    @Query("""
+        SELECT * FROM favorite 
+        WHERE departure_code = :departureCode 
+        AND destination_code = :destinationCode
+        """)
+    fun getFavoriteByDepartureCodeAndDestinationCode(
+        departureCode: String, destinationCode: String): Flow<Favorite?>
+
+    @Query("SELECT MAX(id) FROM favorite")
+    suspend fun getMaxId(): Int?
+
+    @Query("DELETE FROM sqlite_sequence WHERE name='favorite'")
+    suspend fun resetFavoriteSequence()
+
+    @Query("DELETE FROM favorite")
+    suspend fun clearFavorites()
     @Insert
-    suspend fun insertFavorite(flight: Favorite)
+    suspend fun insert(flight: Favorite): Long
     @Delete
-    suspend fun deleteFavorite(flight: Favorite)
+    suspend fun delete(flight: Favorite)
+
 }

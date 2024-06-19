@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,19 +33,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flightsearch.R
+import com.example.flightsearch.models.Favorite
 import com.example.flightsearch.ui.theme.AppViewModelProvider
 
-// TODO : properly spaced FlightCard LazyColumn
-// TODO : get star icon showing
-// TODO : save/unsave favorite functionality from repo
-// TODO : replace isShowingResults with 3 state enum ScreenState
+// TODO : todo switch getAirportNameByIataCode and isFavorite to suspending functions
 
-
+// TODO : favorites toggle icon --update-- partially done, but doesn't change state
+//  until recomposition of the list item
+// TODO : replace isShowingResults with 3-state enum ScreenState
+// TODO : blank search text = show favorites
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    modifier: Modifier = Modifier,
     viewModel: MainScreenViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val searchStringState by viewModel.searchString.collectAsState()
@@ -177,20 +178,10 @@ fun MainScreen(
                     ) {
                         items(
                             items = uiState.flightList,
-                            key = { flightResult -> flightResult.id }
+                            key = { flightResult -> flightResult.id!! }
                         ) {
-                            /*
-                        Text(
-                            text = "Departure: ${it.departureCode} - " +
-                                    "Destination: ${it.destinationCode}",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        )
-
-                         */
-                            FlightCard()
-                            Spacer(modifier = Modifier.width(8.dp))
+                            FlightCard(it, viewModel)
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                 }
@@ -201,7 +192,7 @@ fun MainScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FlightCard() {
+fun FlightCard(flightResult: Favorite, viewModel: MainScreenViewModel) {
     Card(
         onClick = { }
     ) {
@@ -210,7 +201,9 @@ fun FlightCard() {
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = "Departure"
                 )
@@ -219,12 +212,13 @@ fun FlightCard() {
                         .padding(8.dp)
                 ) {
                     Text(
-                        text = "EXP",
+                        text = flightResult.departureCode,
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Name of airport",
+                        text = viewModel
+                            .getAirportNameByIataCode(flightResult.departureCode)
                     )
                 }
                 Text(
@@ -232,27 +226,32 @@ fun FlightCard() {
                 )
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
                         .padding(8.dp)
                 ) {
                     Text(
-                        text = "EXP",
+                        text = flightResult.destinationCode,
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Name of airport",
+                        text = viewModel
+                            .getAirportNameByIataCode(flightResult.destinationCode)
                     )
                 }
             }
-            FavoriteButton(isFavorite = true){ }
+            FavoriteButton(flightResult, viewModel)
             Spacer(modifier = Modifier.width(8.dp))
         }
     }
 }
 @Composable
-fun FavoriteButton(isFavorite: Boolean, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+fun FavoriteButton(
+    flightResult: Favorite,
+    viewModel: MainScreenViewModel
+) {
+    val isFavorite = viewModel.isFavorite(flightResult)
+
+    IconButton(onClick = { viewModel.toggleFavorite(flightResult) }) {
         Icon(
             painter = painterResource(id = if (isFavorite)
                 R.drawable.star_filled else R.drawable.star_unfilled),

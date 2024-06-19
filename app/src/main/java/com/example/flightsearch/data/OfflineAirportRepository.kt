@@ -19,6 +19,9 @@ class OfflineAirportRepository(
     override fun getAirportById(id: Int): Flow<Airport?> =
         airportDao.getAirportById(id)
 
+    override fun getAirportNameByIataCode(iataCode: String): Flow<String> =
+        airportDao.getAirportNameByIataCode(iataCode)
+
     override suspend fun insertAirport(airport: Airport) {
         airportDao.insert(airport)
     }

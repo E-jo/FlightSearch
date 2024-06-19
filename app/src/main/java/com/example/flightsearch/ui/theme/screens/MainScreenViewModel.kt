@@ -7,7 +7,7 @@ import com.example.flightsearch.data.AirportRepository
 import com.example.flightsearch.data.FavoriteRepository
 import com.example.flightsearch.data.SearchStringRepository
 import com.example.flightsearch.models.Airport
-import com.example.flightsearch.models.FlightResult
+import com.example.flightsearch.models.Favorite
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +19,16 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class MainScreenViewModel(
     private val airportRepository: AirportRepository,
     private val favoriteRepository: FavoriteRepository,
     private val searchStringRepository: SearchStringRepository
 ) : ViewModel() {
+    init {
+        clearFavorites()
+    }
 
     private val _uiState = MutableStateFlow(
         UiState(
@@ -51,6 +55,12 @@ class MainScreenViewModel(
                 initialValue = emptyList()
             )
 
+    fun clearFavorites() {
+        viewModelScope.launch {
+            favoriteRepository.clearFavorites()
+            favoriteRepository.resetFavoriteSequence()
+        }
+    }
     fun updateSearchString(searchString: String) {
         _searchString.value = searchString
         viewModelScope.launch {
@@ -98,20 +108,38 @@ class MainScreenViewModel(
                 "MainScreen",
                 "Destination results for $searchStringState: ${results?.size ?: 0}"
             )
-            val flights = mutableListOf<FlightResult>()
-            var index = 0
+            val flights = mutableListOf<Favorite>()
             results?.forEach {
                 Log.d("MainScreen", it.name)
-                var currentAirportName = ""
+                var currentAirportCode = ""
                 if (_uiState.value.currentAirport != null) {
-                    currentAirportName = _uiState.value.currentAirport!!.name
+                    currentAirportCode = _uiState.value.currentAirport!!.iataCode
                 }
-                val flight = FlightResult(
-                    index++,
-                    currentAirportName,
-                    it.name,
+                val maxId = favoriteRepository.getMaxId() ?: 0
+                val flight = Favorite(
+                    departureCode = currentAirportCode,
+                    destinationCode = it.iataCode
                 )
-                flights.add(flight)
+                val generatedId = favoriteRepository.insert(flight)
+                Log.d("ViewModel", "Inserted Favorite with ID: $generatedId")
+                val flightWithId =
+                    favoriteRepository
+                        .getFavoriteByDepartureCodeAndDestinationCode(
+                            flight.departureCode,
+                            flight.destinationCode
+                        )
+                        .firstOrNull()
+                if (flightWithId != null) {
+                    favoriteRepository.delete(flightWithId)
+                }
+                flightWithId.let { f ->
+                    if (f != null) {
+                        flights.add(f)
+                    }
+                }
+            }
+            flights.forEach {
+                Log.d("ViewModel", "Flight: ${it.id}")
             }
             _uiState.update {
                 it.copy(
@@ -121,12 +149,50 @@ class MainScreenViewModel(
             }
         }
     }
+
+    fun toggleFavorite(flight: Favorite) {
+        Log.d("ViewModel", "Toggling favorite for ${flight.id}")
+        viewModelScope.launch {
+            if (isFavorite(flight)) {
+                Log.d("ViewModel", "${flight.id} is currently a favorite, removing it")
+                favoriteRepository.delete(flight)
+            } else {
+                Log.d("ViewModel", "${flight.id} is not currently a favorite, adding it")
+                favoriteRepository.insert(flight)
+            }
+        }
+    }
+    
+    fun isFavorite(flight: Favorite): Boolean {
+        var isFavorite = false
+        runBlocking {
+            isFavorite = favoriteRepository
+                .getFavoriteByDepartureCodeAndDestinationCode(
+                    flight.departureCode,
+                    flight.destinationCode
+                ).firstOrNull().let { it != null }
+        }
+        return isFavorite
+    }
+
+    fun getAirportNameByIataCode(iataCode: String): String {
+        Log.d("ViewModel", "Getting airport name for $iataCode")
+        var name = ""
+        runBlocking {
+            name = airportRepository
+            .getAirportNameByIataCode(iataCode)
+            .firstOrNull()
+            .let { it ?: "" }
+            Log.d("ViewModel", "Inside viewModelScope: name = $name")
+        }
+        return name
+    }
 }
 
 data class UiState(
     val currentAirport: Airport? = null,
     val isShowingResults: Boolean = false,
-    val flightList: List<FlightResult> = emptyList(),
+    val flightList: List<Favorite> = emptyList(),
     val screenState: ScreenState = ScreenState.SUGGESTIONS
 )
 

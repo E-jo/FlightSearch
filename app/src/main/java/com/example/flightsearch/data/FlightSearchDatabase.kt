@@ -28,6 +28,7 @@ abstract class FlightSearchDatabase : RoomDatabase() {
                 )
                     .createFromAsset("database/flight_search.db")
                     .fallbackToDestructiveMigration()
+                    //.fallbackToDestructiveMigrationOnDowngrade()
                     .build()
                     .also { Instance = it }
             }
