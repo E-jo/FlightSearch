@@ -37,11 +37,11 @@ import com.example.flightsearch.R
 import com.example.flightsearch.models.Favorite
 import com.example.flightsearch.ui.theme.AppViewModelProvider
 
-// TODO : favorite toggle button state can still lag behind sometimes,
-//  causing crashes when the SharedFlow hasn't been observed properly
-// TODO : find better star icon for favorite button
-// TODO : reimplement the search button for literal searches
+// TODO : multiple issues with SharedFlows being properly observed
+// TODO : reimplement the search button per project guidelines (actually, probably not,
+//  that doesn't make sense in this implementation)
 // TODO : AppBar
+// TODO : find better star icon for favorite button
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +49,6 @@ fun MainScreen(
     viewModel: MainScreenViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val searchStringState by viewModel.searchString.collectAsState()
-    val airportList by viewModel.airportList.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
     Column(modifier = Modifier
@@ -170,12 +169,13 @@ fun FavoriteButton(
 ) {
     viewModel.loadFavorites()
     val favorites by viewModel.favorites.collectAsState()
+    var isFavorite = favorites.contains(flightResult)
     LaunchedEffect(favorites) {
-        viewModel.loadFavorites()
+        //viewModel.loadFavorites()
+        isFavorite = favorites.contains(flightResult)
     }
-    val isFavorite = favorites.contains(flightResult)
 
-    IconButton(onClick = { viewModel.toggleFavorite(flightResult, favorites) }) {
+    IconButton(onClick = { viewModel.toggleFavorite(flightResult) }) {
         Icon(
             painter = painterResource(id = if (isFavorite)
                 R.drawable.star_filled else R.drawable.star_unfilled),
@@ -294,7 +294,6 @@ fun ResultList(viewModel: MainScreenViewModel) {
 
 @Composable
 fun FavoriteList(viewModel: MainScreenViewModel) {
-    val uiState by viewModel.uiState.collectAsState()
     viewModel.loadFavorites()
     val favorites by viewModel.favorites.collectAsState()
     LaunchedEffect(favorites) {

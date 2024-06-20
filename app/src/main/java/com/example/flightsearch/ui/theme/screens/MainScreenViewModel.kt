@@ -55,8 +55,10 @@ class MainScreenViewModel(
 
     fun loadAirportName(iataCode: String) {
         viewModelScope.launch {
-            val name = airportRepository.getAirportNameByIataCode(iataCode).firstOrNull() ?: "Unknown"
-            _airportNames.value = _airportNames.value + (iataCode to name)
+            val name = airportRepository
+                .getAirportNameByIataCode(iataCode)
+                .firstOrNull() ?: "Unknown"
+            _airportNames.value += (iataCode to name)
         }
     }
 
@@ -65,7 +67,9 @@ class MainScreenViewModel(
 
     fun loadFavorites() {
         viewModelScope.launch {
-            val favorites = favoriteRepository.getAllFavorites().firstOrNull() ?: emptyList()
+            val favorites = favoriteRepository
+                .getAllFavorites()
+                .firstOrNull() ?: emptyList()
             _favorites.value = favorites
         }
     }
@@ -147,14 +151,11 @@ class MainScreenViewModel(
                             flight.destinationCode
                         )
                         .firstOrNull()
-                if (flightWithId != null) {
+                flightWithId?.let {
                     favoriteRepository.delete(flightWithId)
+                    flights.add(flightWithId)
                 }
-                flightWithId.let { f ->
-                    if (f != null) {
-                        flights.add(f)
-                    }
-                }
+
             }
             flights.forEach {
                 Log.d("ViewModel", "Flight: ${it.id}")
@@ -168,11 +169,11 @@ class MainScreenViewModel(
         }
     }
 
-    fun toggleFavorite(flight: Favorite, favorites: List<Favorite>) {
+    fun toggleFavorite(flight: Favorite) {
         Log.d("ViewModel", "Toggling favorite for ${flight.id}")
         loadFavorites()
         viewModelScope.launch {
-            if (favorites.contains(flight)) {
+            if (favorites.value.contains(flight)) {
                 Log.d("ViewModel", "${flight.id} is currently a favorite, removing it")
                 favoriteRepository.delete(flight)
             } else {
@@ -180,6 +181,7 @@ class MainScreenViewModel(
                 favoriteRepository.insert(flight)
             }
         }
+        loadFavorites()
     }
     
     fun isFavorite(flight: Favorite): Boolean {
