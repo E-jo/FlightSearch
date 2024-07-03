@@ -20,10 +20,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,13 +42,12 @@ import com.example.flightsearch.R
 import com.example.flightsearch.models.Favorite
 import com.example.flightsearch.ui.theme.AppViewModelProvider
 
-// TODO : multiple issues with SharedFlows being properly observed
+// TODO : multiple issues with StateFlows being properly observed --- CHECKMARK!
+// TODO : AppBar --- CHECKMARK!
+// TODO : find better star icon for favorite button --- SCREW IT, WHO CARES?!
 // TODO : reimplement the search button per project guidelines (actually, probably not,
 //  that doesn't make sense in this implementation)
-// TODO : AppBar
-// TODO : find better star icon for favorite button
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     viewModel: MainScreenViewModel = viewModel(factory = AppViewModelProvider.Factory),
@@ -51,49 +55,43 @@ fun MainScreen(
     val searchStringState by viewModel.searchString.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)) {
-        Row(
+
+    Column {
+        FlightSearchAppBar()
+
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            TextField(
-                value = searchStringState,
-                onValueChange = {
-                    viewModel.updateSearchString(it)
-                    viewModel.hideResults(it)
-                },
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(8.dp)
-                    .background(Color.LightGray, shape = MaterialTheme.shapes.small)
-                    .padding(12.dp),
-                textStyle = TextStyle(fontSize = 16.sp),
-                placeholder = { Text(text = "Enter departure airport") }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            /*
-            IconButton(onClick = {
-                viewModel.getDestinations(searchStringState)
-                //viewModel.searchAirports(searchStringState)
-            }) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_search),
-                    contentDescription = "Search"
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextField(
+                    value = searchStringState,
+                    onValueChange = {
+                        viewModel.updateSearchString(it)
+                        viewModel.hideResults(it)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp)
+                        .background(Color.LightGray, shape = MaterialTheme.shapes.small)
+                        .padding(12.dp),
+                    textStyle = TextStyle(fontSize = 16.sp),
+                    placeholder = { Text(text = "Enter departure airport") }
                 )
+                Spacer(modifier = Modifier.width(8.dp))
             }
 
-<a href="https://www.flaticon.com/free-icons/star" title="star icons">Star icons created by Pixel perfect - Flaticon</a>
-             */
-        }
-
-        when (uiState.screenState) {
-            ScreenState.SUGGESTIONS -> SuggestionList(viewModel = viewModel)
-            ScreenState.RESULTS -> ResultList(viewModel = viewModel)
-            ScreenState.FAVORITES -> FavoriteList(viewModel = viewModel)
+            when (uiState.screenState) {
+                ScreenState.SUGGESTIONS -> SuggestionList(viewModel = viewModel)
+                ScreenState.RESULTS -> ResultList(viewModel = viewModel)
+                ScreenState.FAVORITES -> FavoriteList(viewModel = viewModel)
+            }
         }
     }
 }
@@ -102,59 +100,42 @@ fun MainScreen(
 @Composable
 fun FlightCard(flightResult: Favorite, viewModel: MainScreenViewModel) {
     val airportNames by viewModel.airportNames.collectAsState()
+    val favorites by viewModel.favorites.collectAsState()
 
-    // Load airport name for departureCode when flightResult.departureCode changes
     LaunchedEffect(flightResult.departureCode) {
         viewModel.loadAirportName(flightResult.departureCode)
     }
 
-    // Load airport name for destinationCode when flightResult.destinationCode changes
     LaunchedEffect(flightResult.destinationCode) {
         viewModel.loadAirportName(flightResult.destinationCode)
     }
 
-    Card(
-        onClick = { }
-    ) {
+    //Log.d("MainScreen", "FlightCard recomposed: ${airportNames.size}")
+
+    Card(onClick = { }) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "Departure"
-                )
-                Row(
-                    modifier = Modifier
-                        .padding(8.dp)
-                ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "Departure")
+                Row(modifier = Modifier.padding(8.dp)) {
                     Text(
                         text = flightResult.departureCode,
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = airportNames[flightResult.departureCode] ?: "Loading...",
-                    )
+                    Text(text = airportNames[flightResult.departureCode] ?: "Loading...")
                 }
-                Text(
-                    text = "Arrival"
-                )
-                Row(
-                    modifier = Modifier
-                        .padding(8.dp)
-                ) {
+                Text(text = "Arrival")
+                Row(modifier = Modifier.padding(8.dp)) {
                     Text(
                         text = flightResult.destinationCode,
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = airportNames[flightResult.destinationCode] ?: "Loading...",
-                    )
+                    Text(text = airportNames[flightResult.destinationCode] ?: "Loading...")
                 }
             }
             FavoriteButton(flightResult, viewModel)
@@ -162,27 +143,31 @@ fun FlightCard(flightResult: Favorite, viewModel: MainScreenViewModel) {
         }
     }
 }
+
 @Composable
 fun FavoriteButton(
     flightResult: Favorite,
     viewModel: MainScreenViewModel
 ) {
-    viewModel.loadFavorites()
     val favorites by viewModel.favorites.collectAsState()
-    var isFavorite = favorites.contains(flightResult)
-    LaunchedEffect(favorites) {
-        //viewModel.loadFavorites()
-        isFavorite = favorites.contains(flightResult)
-    }
+    val isFavorite = remember { mutableStateOf(favorites.contains(flightResult)) }
 
-    IconButton(onClick = { viewModel.toggleFavorite(flightResult) }) {
-        Icon(
-            painter = painterResource(id = if (isFavorite)
-                R.drawable.star_filled else R.drawable.star_unfilled),
-            contentDescription = null
-        )
-    }
+    Log.d("MainScreen", "FavoriteButton recomposed: ${isFavorite.value}")
+    Log.d("MainScreen", "FavoriteButton recomposed: ${flightResult.destinationCode}")
 
+    key(isFavorite) {
+        IconButton(onClick = {
+            viewModel.toggleFavorite(flightResult)
+            isFavorite.value = !isFavorite.value
+        }) {
+            Icon(
+                painter = painterResource(
+                    id = if (isFavorite.value) R.drawable.star_filled
+                    else R.drawable.star_unfilled),
+                    contentDescription = null
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -191,31 +176,25 @@ fun SuggestionList(viewModel: MainScreenViewModel) {
     val searchStringState by viewModel.searchString.collectAsState()
     val airportList by viewModel.airportList.collectAsState()
 
+    Log.d("MainScreen", "Suggestion list recomposed: $searchStringState")
+    Log.d("MainScreen", "Suggestion list recomposed: ${airportList.size}")
+
     Text(
         text = "Flights from $searchStringState",
         modifier = Modifier
             .fillMaxWidth()
-            .padding(
-                start = 8.dp,
-                bottom = 8.dp
-            )
+            .padding(start = 8.dp, bottom = 8.dp)
     )
     if (airportList.isEmpty()) {
         Text(
             text = "No airports found matching $searchStringState",
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    start = 8.dp,
-                    bottom = 8.dp
-                )
+                .padding(start = 8.dp, bottom = 8.dp)
         )
     } else {
         Box(modifier = Modifier.fillMaxWidth()) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(
                     items = airportList,
                     key = { airport -> airport.id },
@@ -226,60 +205,46 @@ fun SuggestionList(viewModel: MainScreenViewModel) {
                             viewModel.getDestinations(airport.iataCode)
                         }
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                        ) {
+                        Row(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)) {
                             Text(
                                 text = airport.iataCode,
                                 fontWeight = FontWeight.Bold,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = airport.name,
-                            )
+                            Text(text = airport.name)
                         }
                     }
                 }
             }
         }
-        Log.d("MainScreen", "Search string: $searchStringState")
-        Log.d("MainScreen", "Results: ${airportList.size}")
-        Log.d("MainScreen", "Airports: ${airportList.map { it.name }}")
     }
 }
 
 @Composable
 fun ResultList(viewModel: MainScreenViewModel) {
-    val searchStringState by viewModel.searchString.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+
+    Log.d("MainScreen", "Result list recomposed: ${uiState.flightList.size}")
+
 
     if (uiState.flightList.isEmpty()) {
         Text(
-            text = "No flights found from $searchStringState",
+            text = "No flights found from ${uiState.currentAirport?.name ?: ""}",
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    start = 8.dp,
-                    bottom = 8.dp
-                )
+                .padding(start = 8.dp, bottom = 8.dp)
         )
     } else {
         Text(
             text = "Flights from ${uiState.currentAirport?.name}",
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    start = 8.dp,
-                    bottom = 8.dp
-                )
+                .padding(start = 8.dp, bottom = 8.dp)
         )
         Box(modifier = Modifier.fillMaxWidth()) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(
                     items = uiState.flightList,
                     key = { flightResult -> flightResult.id!! }
@@ -294,32 +259,50 @@ fun ResultList(viewModel: MainScreenViewModel) {
 
 @Composable
 fun FavoriteList(viewModel: MainScreenViewModel) {
-    viewModel.loadFavorites()
     val favorites by viewModel.favorites.collectAsState()
-    LaunchedEffect(favorites) {
-        viewModel.loadFavorites()
-    }
 
     Box(modifier = Modifier.fillMaxWidth()) {
         if (favorites.isEmpty()) {
             Text(
-                text = "No favorites found",
-                modifier = Modifier
-                    .fillMaxWidth()
+                text = "No current favorites selected",
+                modifier = Modifier.fillMaxWidth()
+                    .padding(start = 8.dp, bottom = 8.dp)
             )
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
-                items(
-                    items = favorites,
-                    key = { flightResult -> flightResult.id }
-                ) {
-                    FlightCard(it, viewModel)
-                    Spacer(modifier = Modifier.height(8.dp))
+            Column{
+                Text(
+                    text = "Current favorites",
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(start = 8.dp, bottom = 8.dp)
+                )
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(
+                        items = favorites,
+                        key = { flightResult -> flightResult.id }
+                    ) {
+                        FlightCard(it, viewModel)
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FlightSearchAppBar(
+    modifier: Modifier = Modifier
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = "Flight Search"
+            )
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        ),
+        modifier = modifier,
+    )
 }

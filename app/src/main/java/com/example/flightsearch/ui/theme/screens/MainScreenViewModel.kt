@@ -63,7 +63,7 @@ class MainScreenViewModel(
     }
 
     private val _favorites = MutableStateFlow<List<Favorite>>(emptyList())
-    val favorites: StateFlow<List<Favorite>> = _favorites
+    val favorites: StateFlow<List<Favorite>> get() = _favorites
 
     fun loadFavorites() {
         viewModelScope.launch {
@@ -171,7 +171,6 @@ class MainScreenViewModel(
 
     fun toggleFavorite(flight: Favorite) {
         Log.d("ViewModel", "Toggling favorite for ${flight.id}")
-        loadFavorites()
         viewModelScope.launch {
             if (favorites.value.contains(flight)) {
                 Log.d("ViewModel", "${flight.id} is currently a favorite, removing it")
@@ -191,7 +190,9 @@ class MainScreenViewModel(
                 .getFavoriteByDepartureCodeAndDestinationCode(
                     flight.departureCode,
                     flight.destinationCode
-                ).firstOrNull().let { it != null }
+                )
+                .firstOrNull()
+                .let { it != null }
         }
         return isFavorite
     }
@@ -204,8 +205,9 @@ class MainScreenViewModel(
             .getAirportNameByIataCode(iataCode)
             .firstOrNull()
             .let { it ?: "" }
-            Log.d("ViewModel", "Inside viewModelScope: name = $name")
+            Log.d("ViewModel", "Inside CoroutineScope: name = $name")
         }
+        Log.d("ViewModel", "Airport name for $iataCode: $name")
         return name
     }
 }
@@ -217,3 +219,6 @@ data class UiState(
 )
 
 enum class ScreenState { SUGGESTIONS, RESULTS, FAVORITES }
+
+
+
