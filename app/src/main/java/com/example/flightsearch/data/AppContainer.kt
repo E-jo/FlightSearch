@@ -17,7 +17,9 @@ class AppDataContainer(private val context: Context) : AppContainer {
     private val Context.dataStore: DataStore<Preferences>
             by preferencesDataStore(name = SEARCH_STRING_NAME)
 
-    private val database: FlightSearchDatabase by lazy { FlightSearchDatabase.getDatabase(context) }
+    private val database: FlightSearchDatabase by lazy {
+        FlightSearchDatabase.getDatabase(context)
+    }
 
     override val searchStringRepository: SearchStringRepository by lazy {
         SearchStringRepository(context.dataStore)
@@ -30,5 +32,5 @@ class AppDataContainer(private val context: Context) : AppContainer {
     override val airportRepository: AirportRepository by lazy {
         OfflineAirportRepository(database.airportDao())
     }
-
 }
+

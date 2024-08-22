@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 class MainScreenViewModel(
     private val airportRepository: AirportRepository,
@@ -53,7 +52,7 @@ class MainScreenViewModel(
     private val _airportNames = MutableStateFlow<Map<String, String>>(emptyMap())
     val airportNames: StateFlow<Map<String, String>> = _airportNames
 
-    fun loadAirportName(iataCode: String) {
+    suspend fun loadAirportName(iataCode: String) {
         viewModelScope.launch {
             val name = airportRepository
                 .getAirportNameByIataCode(iataCode)
@@ -65,7 +64,7 @@ class MainScreenViewModel(
     private val _favorites = MutableStateFlow<List<Favorite>>(emptyList())
     val favorites: StateFlow<List<Favorite>> get() = _favorites
 
-    fun loadFavorites() {
+    private suspend fun loadFavorites() {
         viewModelScope.launch {
             val favorites = favoriteRepository
                 .getAllFavorites()
@@ -109,7 +108,7 @@ class MainScreenViewModel(
         }
     }
 
-    fun searchAirports(searchStringState: String) {
+    suspend fun searchAirports(searchStringState: String) {
         viewModelScope.launch {
             val results = airportRepository
                 .getSuggestedAirports(searchStringState)
@@ -122,7 +121,7 @@ class MainScreenViewModel(
             results?.forEach {Log.d("MainScreen", it.name)}
         }
     }
-    fun getDestinations(searchStringState: String) {
+    suspend fun getDestinations(searchStringState: String) {
         viewModelScope.launch {
             val results = airportRepository
                 .getDestinationAirports(searchStringState)
@@ -169,7 +168,7 @@ class MainScreenViewModel(
         }
     }
 
-    fun toggleFavorite(flight: Favorite) {
+    suspend fun toggleFavorite(flight: Favorite) {
         Log.d("ViewModel", "Toggling favorite for ${flight.id}")
         viewModelScope.launch {
             if (favorites.value.contains(flight)) {
@@ -183,9 +182,9 @@ class MainScreenViewModel(
         loadFavorites()
     }
     
-    fun isFavorite(flight: Favorite): Boolean {
+    suspend fun isFavorite(flight: Favorite): Boolean {
         var isFavorite = false
-        runBlocking {
+        viewModelScope.launch {
             isFavorite = favoriteRepository
                 .getFavoriteByDepartureCodeAndDestinationCode(
                     flight.departureCode,
@@ -197,10 +196,10 @@ class MainScreenViewModel(
         return isFavorite
     }
 
-    fun getAirportNameByIataCode(iataCode: String): String {
+    suspend fun getAirportNameByIataCode(iataCode: String): String {
         Log.d("ViewModel", "Getting airport name for $iataCode")
         var name = ""
-        runBlocking {
+        viewModelScope.launch {
             name = airportRepository
             .getAirportNameByIataCode(iataCode)
             .firstOrNull()

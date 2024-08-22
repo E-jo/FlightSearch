@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,12 +42,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flightsearch.R
 import com.example.flightsearch.models.Favorite
 import com.example.flightsearch.ui.theme.AppViewModelProvider
+import kotlinx.coroutines.launch
 
 // TODO : multiple issues with StateFlows being properly observed --- CHECKMARK!
 // TODO : AppBar --- CHECKMARK!
 // TODO : find better star icon for favorite button --- SCREW IT, WHO CARES?!
 // TODO : reimplement the search button per project guidelines (actually, probably not,
 //  that doesn't make sense in this implementation)
+// TODO : AppBar --- add back navigation from results list back to search/favorites screen?
+//  currently the way back is to delete what you've typed in the search bar, which isn't too intuitive
 
 @Composable
 fun MainScreen(
@@ -54,7 +58,6 @@ fun MainScreen(
 ) {
     val searchStringState by viewModel.searchString.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-
 
     Column {
         FlightSearchAppBar()
@@ -84,7 +87,6 @@ fun MainScreen(
                     textStyle = TextStyle(fontSize = 16.sp),
                     placeholder = { Text(text = "Enter departure airport") }
                 )
-                Spacer(modifier = Modifier.width(8.dp))
             }
 
             when (uiState.screenState) {
@@ -100,7 +102,6 @@ fun MainScreen(
 @Composable
 fun FlightCard(flightResult: Favorite, viewModel: MainScreenViewModel) {
     val airportNames by viewModel.airportNames.collectAsState()
-    val favorites by viewModel.favorites.collectAsState()
 
     LaunchedEffect(flightResult.departureCode) {
         viewModel.loadAirportName(flightResult.departureCode)
@@ -109,8 +110,6 @@ fun FlightCard(flightResult: Favorite, viewModel: MainScreenViewModel) {
     LaunchedEffect(flightResult.destinationCode) {
         viewModel.loadAirportName(flightResult.destinationCode)
     }
-
-    //Log.d("MainScreen", "FlightCard recomposed: ${airportNames.size}")
 
     Card(onClick = { }) {
         Row(
@@ -151,14 +150,17 @@ fun FavoriteButton(
 ) {
     val favorites by viewModel.favorites.collectAsState()
     val isFavorite = remember { mutableStateOf(favorites.contains(flightResult)) }
+    val coroutineScope = rememberCoroutineScope()
 
     Log.d("MainScreen", "FavoriteButton recomposed: ${isFavorite.value}")
     Log.d("MainScreen", "FavoriteButton recomposed: ${flightResult.destinationCode}")
 
     key(isFavorite) {
         IconButton(onClick = {
-            viewModel.toggleFavorite(flightResult)
-            isFavorite.value = !isFavorite.value
+            coroutineScope.launch {
+                viewModel.toggleFavorite(flightResult)
+                isFavorite.value = !isFavorite.value
+            }
         }) {
             Icon(
                 painter = painterResource(
@@ -175,6 +177,7 @@ fun FavoriteButton(
 fun SuggestionList(viewModel: MainScreenViewModel) {
     val searchStringState by viewModel.searchString.collectAsState()
     val airportList by viewModel.airportList.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     Log.d("MainScreen", "Suggestion list recomposed: $searchStringState")
     Log.d("MainScreen", "Suggestion list recomposed: ${airportList.size}")
@@ -201,8 +204,10 @@ fun SuggestionList(viewModel: MainScreenViewModel) {
                 ) { airport ->
                     Card(
                         onClick = {
-                            viewModel.updateCurrentAirport(airport)
-                            viewModel.getDestinations(airport.iataCode)
+                            coroutineScope.launch {
+                                viewModel.updateCurrentAirport(airport)
+                                viewModel.getDestinations(airport.iataCode)
+                            }
                         }
                     ) {
                         Row(modifier = Modifier
